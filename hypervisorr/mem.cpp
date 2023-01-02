@@ -21,7 +21,7 @@ PVOID kernelmem::AllocPageAlignedPhysicalMem(_In_ size_t NumBytes)
 
 
 
-PVOID kernelmem::AllocContiguousPhysicalMem(_In_ size_t NumBytes)
+PVOID kernelmem::AllocContiguousPhysicalMem(_In_ size_t NumBytes)			// Must be freed with MmFreeContiguousMemory
 {
 
 	LARGE_INTEGER bounds, low, high;

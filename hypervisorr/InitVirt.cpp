@@ -2,6 +2,9 @@
 
 
 
+
+
+
 void virt::BuildPT4L_4kb(_Out_ PT_4L_long4kb::PPAGING_DATA PagingData)
 {
 
@@ -293,31 +296,53 @@ void virt::BuildVMCB(Globals* g_GlobalSettings, PVirtual_Processor_Data PtrVproc
 NTSTATUS virt::VirtualizeSingleProcessor(Globals* g_GlobalSettings, _In_ PVOID PagingData)
 {
 	NTSTATUS ret = STATUS_SUCCESS;
-	PVirtual_Processor_Data P_vproc_data = nullptr;
+	PVirtual_Processor_Data PtrVprocData = nullptr;
 	PCONTEXT ContextInit = (PCONTEXT)ExAllocatePoolWithTag(NonPagedPool, sizeof(CONTEXT), 'hypr');
 
-	if (ContextInit == nullptr) {
+	if (ContextInit == nullptr) 
+	{
 		KdPrint(("[virt::VirtualizeSingleProcessor]: Unable to allocate memory."));
 		return STATUS_INSUFFICIENT_RESOURCES;
 	}
 
-	P_vproc_data = (PVirtual_Processor_Data)kernelmem::AllocPageAlignedPhysicalMem(sizeof(Virtual_Processor_Data));
+	PtrVprocData = (PVirtual_Processor_Data)kernelmem::AllocPageAlignedPhysicalMem(sizeof(Virtual_Processor_Data));
+	if (PtrVprocData == nullptr)
+	{
+		if (ContextInit) {
+			ExFreePool(ContextInit);
+		}
+		KdPrint(("[virt::VirtualizeSingleProcessor]: Unable to allocate memory."));
+		return STATUS_INSUFFICIENT_RESOURCES;
+	}
+
+
 	RtlCaptureContext(ContextInit);
 
-	if (isInstalled())
+	if (!isInstalled())
 	{
 
 
 		// enable SVM
 		__writemsr(IA32_EFER, __readmsr(IA32_EFER) | IA32_EFER_SVME);
 
-		BuildVMCB(g_GlobalSettings, P_vproc_data, PagingData, ContextInit);
+		BuildVMCB(g_GlobalSettings, PtrVprocData, PagingData, ContextInit);
 
 
-		EnterSVM()
-
+		__enter_svm(&PtrVprocData->ptr_guest_VMCB);
+		KeBugCheck(MANUALLY_INITIATED_CRASH);		// this should never be hit
 	}
 
+
+
+	short pNum = _InterlockedIncrement16(&g_GlobalSettings->NumProcessorsVirtualized);
+	KdPrint(("Processor #%d has been successfully virtualized!.", pNum));
+	ret = STATUS_SUCCESS;
+
+	if (ContextInit) {
+		ExFreePool(ContextInit);
+	}
+
+	return ret;
 }
 
 
@@ -337,9 +362,15 @@ NTSTATUS virt::InitVirtualization(Globals* g_GlobalSettings)
 	g_GlobalSettings->PageData = PagingData;
 
 
-	PagingData->MsrPermBitMap = kernelmem::AllocPageAlignedPhysicalMem(MSRPERM_MAP_SIZE);
+	PagingData->MsrPermBitMap = kernelmem::AllocContiguousPhysicalMem(MSRPERM_MAP_SIZE);
 	if (!PagingData->MsrPermBitMap) {
+
 		KdPrint(("Could not allocate memory for PAGING_DATA->MsrPermBitMap\n"));
+
+		if (PagingData) {
+			ExFreePool(PagingData);
+		}
+
 		return STATUS_INSUFFICIENT_RESOURCES;
 	}
 
@@ -355,11 +386,20 @@ NTSTATUS virt::InitVirtualization(Globals* g_GlobalSettings)
 		if (processorsVirtualized > 0) {
 			ExitVirtualSession();
 		}
+		else {
+			if (PagingData) {
 
+				if (PagingData->MsrPermBitMap) {
+					MmFreeContiguousMemory(PagingData->MsrPermBitMap);
+				}
+
+				ExFreePool(PagingData);
+			}
+		}
 
 	}
 
-
+	return status;
 }
 
 

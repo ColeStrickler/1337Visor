@@ -4,9 +4,16 @@
 #include "helpers.h"
 #include "mem.h"
 #include <intrin.h>
+
+
+
+// ASM FUNCTIONS
+extern "C" void __enter_svm(_In_ PVOID InitStackPtr);
+
+
 namespace virt
 {
-
+	
 
 	enum PagingModes : short
 	{

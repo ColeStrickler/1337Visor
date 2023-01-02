@@ -16,7 +16,7 @@ struct Globals {
 	PVOID						PageData;
 
 
-
+	short						NumProcessorsVirtualized;
 };
 
 

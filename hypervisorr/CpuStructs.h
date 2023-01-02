@@ -9,15 +9,38 @@ typedef struct Virtual_Processor_Data
 {
 	VMCB host_VMCB;
 	VMCB guest_VMCB;
-	PVMCB ptr_host_VMCB;				// PHYSICAL ADDRESS
-	PVMCB ptr_guest_VMCB;				// PHYSICAL ADDRESS
 	
 	DECLSPEC_ALIGN(PAGE_SIZE) BYTE host_StateArea[PAGE_SIZE];
-	PT_4L_long2mb::PPAGING_DATA paging_Data;
+
+	PVMCB ptr_guest_VMCB;				// PHYSICAL ADDRESS
+	PVMCB ptr_host_VMCB;				// PHYSICAL ADDRESS
 	PVirtual_Processor_Data ptr_Self;
-
-
+	PT_4L_long2mb::PPAGING_DATA paging_Data;
+	
 }Virtual_Processor_Data, *PVirtual_Processor_Data;
+
+
+
+typedef struct Register_Context
+{
+	uintptr_t r15;
+	uintptr_t r14;
+	uintptr_t r13;
+	uintptr_t r12;
+	uintptr_t r11;
+	uintptr_t r10;
+	uintptr_t r9;
+	uintptr_t r8;
+	uintptr_t rdi;
+	uintptr_t rsi;
+	uintptr_t rbp;
+	//uintptr_t rsp;
+	uintptr_t rdx;
+	uintptr_t rcx;
+	uintptr_t rbx;
+	uintptr_t rax;
+}Register_Context, *PRegister_Context;
+
 
 
 
@@ -92,7 +115,7 @@ namespace PT_4L_long4kb
 		uintptr_t Reserved :		3;
 		uintptr_t Avl :				3;
 		uintptr_t PdBasePhysical :	40;
-		uintptr_t Reserved :		11;
+		uintptr_t Reserved2 :		11;
 		uintptr_t NoExecute :		1;
 	}PDP_ENTRY_4kb, *PPDP_ENTYR_4kb;
 	static_assert(sizeof(PDP_ENTRY_4kb) == 8, "PDP_ENTRY_4kb Size Mismatch");
@@ -108,7 +131,7 @@ namespace PT_4L_long4kb
 		uintptr_t Reserved :		3;
 		uintptr_t Avl :				3;
 		uintptr_t PdBasePhysical :	40;
-		uintptr_t Reserved :		11;
+		uintptr_t Reserved2 :		11;
 		uintptr_t NoExecute :		1;
 	}PD_ENTRY_4kb, *PPD_ENTRY_4kb;
 	static_assert(sizeof(PD_ENTRY_4kb) == 8, "PD_ENTRY_4kb Size Mismatch");
