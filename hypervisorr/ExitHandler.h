@@ -1,5 +1,6 @@
 #pragma once
 #include "CpuStructs.h"
+#include "InitVirt.h"
 
 
 namespace exit_handler

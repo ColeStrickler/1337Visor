@@ -403,4 +403,101 @@ NTSTATUS virt::InitVirtualization(Globals* g_GlobalSettings)
 }
 
 
+void virt::Inject_GP_Exception(PVirtual_Processor_Data PtrVprocData)
+{
+	EventInj GP_Exception;
 
+	GP_Exception.Vector = 13;
+	GP_Exception.Type = 3;
+	GP_Exception.ErrorCodeValid = 1;
+	GP_Exception.Valid = 1;
+
+	PtrVprocData->guest_VMCB.ControlArea.EventInj = GP_Exception;
+}
+
+
+bool virt::isInstalled()
+{
+	int cpuInfo[4];
+	char vendor[13];
+	memset(vendor, 0x00, 13);
+	//
+	// We set this up in our exit_handler::cpuid_handler()
+	//
+	__cpuid(cpuInfo, CPUID_HYPERVISOR_VENDOR_ID);
+
+	memcpy(vendor, &cpuInfo[1], sizeof(int));
+	memcpy(vendor + sizeof(int), &cpuInfo[2], sizeof(int));
+	memcpy(vendor + sizeof(int) + sizeof(int), &cpuInfo[3], sizeof(int));
+
+
+	return (strcmp(vendor, "1337visor   ") == 0);
+}
+
+
+NTSTATUS virt::ExitVirtualSession(Globals* g_GlobalSettings)
+{
+
+	NT_VERIFY(NT_SUCCESS(DevirtualizeProcessors(g_GlobalSettings)));
+	
+}
+
+
+
+NTSTATUS virt::DevirtualizeProcessors(Globals* g_GlobalSettings)
+{
+	NTSTATUS ret = STATUS_SUCCESS;
+
+	ULONG NumberOfLogicalProcessors;
+	PROCESSOR_NUMBER ProcNum;
+	GROUP_AFFINITY NewAffinity, OldAffinity;
+
+	NumberOfLogicalProcessors = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
+
+	for (short int i = 0; i < NumberOfLogicalProcessors; i++)
+	{
+		ret = KeGetProcessorNumberFromIndex((ULONG)i, &ProcNum);
+		if (!NT_SUCCESS(ret)) {
+			return ret;
+		}
+
+		// SWITCH CODE EXECUTION TO THE SELECTED PROCESSOR
+		NewAffinity.Group = ProcNum.Group;
+		NewAffinity.Mask = 1ULL << ProcNum.Number;
+		NewAffinity.Reserved[0] = NewAffinity.Reserved[1] = NewAffinity.Reserved[2] = 0;
+		KeSetSystemGroupAffinityThread(&NewAffinity, &OldAffinity);
+
+		ret = DevirtualizeSingleProcessor(g_GlobalSettings);
+
+
+		// Switch back to old processor affinity
+		KeRevertToUserGroupAffinityThread(&OldAffinity);
+		if (!NT_SUCCESS(ret)) {
+			return ret;
+		}
+
+	}
+	return ret;
+}
+
+
+NTSTATUS virt::DevirtualizeSingleProcessor(Globals* g_GlobalSettings)
+{
+
+	int cpuInfo[4];
+	__cpuid(cpuInfo, CPUID_EXIT_VIRTUAL_SESSION);
+	do {
+
+		if (cpuInfo[2] != '1337') {		// we set ecx to this value in __enter_svm() loop if we are exiting
+			break;
+		}
+		KdPrint(("Processor Devirtualized.\n"));
+
+
+		// CONTINUE HERE ==>
+
+	} while (false);
+	
+
+
+}

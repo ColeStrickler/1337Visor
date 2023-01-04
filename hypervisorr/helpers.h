@@ -14,7 +14,7 @@ struct Globals {
 
 	virt::PagingModes			ActivePageMode;
 	PVOID						PageData;
-
+	PVirtual_Processor_Data		PtrVprocData;
 
 	short						NumProcessorsVirtualized;
 };

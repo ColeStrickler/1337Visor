@@ -188,6 +188,16 @@ struct CleanField
 };
 
 
+struct EventInj
+{
+    uintptr_t Vector : 8;
+    uintptr_t Type : 3;
+    uintptr_t ErrorCodeValid : 1;
+    uintptr_t Reserved : 19;
+    uintptr_t Valid : 1;
+    uintptr_t ErrorCode : 32;
+};
+
 
 
 typedef struct _CONTROL_AREA
@@ -215,7 +225,7 @@ typedef struct _CONTROL_AREA
     NestedPagingEnable NpEnable;            // +0x090
     uintptr_t AvicApicBar;                  // +0x098
     uintptr_t GuestPaOfGhcb;                // +0x0a0
-    uintptr_t EventInj;                     // +0x0a8
+    EventInj EventInj;                     // +0x0a8
     uintptr_t NCr3;                         // +0x0b0
     uintptr_t LbrVirtualizationEnable;      // +0x0b8
     CleanField CleanBits;                   // +0x0c0
