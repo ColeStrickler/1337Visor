@@ -5,19 +5,6 @@
 
 
 
-typedef struct Virtual_Processor_Data
-{
-	VMCB host_VMCB;
-	VMCB guest_VMCB;
-	
-	DECLSPEC_ALIGN(PAGE_SIZE) BYTE host_StateArea[PAGE_SIZE];
-
-	PVMCB ptr_guest_VMCB;				// PHYSICAL ADDRESS
-	PVMCB ptr_host_VMCB;				// PHYSICAL ADDRESS
-	PVirtual_Processor_Data ptr_Self;
-	PT_4L_long2mb::PPAGING_DATA paging_Data;
-	
-}Virtual_Processor_Data, *PVirtual_Processor_Data;
 
 
 
@@ -221,3 +208,17 @@ namespace PT_4L_long2mb
 	
 
 }
+
+typedef struct Virtual_Processor_Data
+{
+	VMCB host_VMCB;
+	VMCB guest_VMCB;
+
+	DECLSPEC_ALIGN(PAGE_SIZE) BYTE host_StateArea[PAGE_SIZE];
+
+	PVMCB ptr_guest_VMCB;				// PHYSICAL ADDRESS
+	PVMCB ptr_host_VMCB;				// PHYSICAL ADDRESS
+	void* ptr_Self;
+	PT_4L_long2mb::PPAGING_DATA paging_Data;
+
+}Virtual_Processor_Data, * PVirtual_Processor_Data;

@@ -18,13 +18,48 @@ Globals g_Struct;
 
 
 
-CALLBACK_FUNCTION PowerCallback;
+static CALLBACK_FUNCTION PowerCallback;
 DRIVER_UNLOAD Unload;
 
 
 
+static VOID PowerCallback(
+    PVOID CallbackContext,
+    PVOID Argument1,
+    PVOID Argument2
+)
+{
+    UNREFERENCED_PARAMETER(CallbackContext);
 
+    //
+    // PO_CB_SYSTEM_STATE_LOCK of Argument1 indicates that a system power state
+    // change is imminent.
+    //
+    if (Argument1 != reinterpret_cast<PVOID>(PO_CB_SYSTEM_STATE_LOCK))
+    {
+        goto Exit;
+    }
 
+    if (Argument2 != FALSE)
+    {
+        //
+        // The system has just reentered S0. Re-virtualize all processors.
+        // The system has just reentered S0. Re-virtualize all processors.
+        //
+        NT_VERIFY(NT_SUCCESS(virt::InitVirtualization(&g_Struct)));
+    }
+    else
+    {
+        //
+        // The system is about to exit system power state S0. De-virtualize all
+        // processors.
+        //
+        virt::ExitVirtualSession();
+    }
+
+Exit:
+    return;
+}
 
 
 
@@ -160,7 +195,7 @@ void Unload(PDRIVER_OBJECT DriverObject)
     if (g_Struct.PowerStateCallback != nullptr) {
         ExUnregisterCallback(g_Struct.PowerStateCallback);
     }
-
+    virt::DevirtualizeProcessors();
 
 
     IoDeleteSymbolicLink(&DosDeviceName);
@@ -246,7 +281,7 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING Reg
 
 
 
-        status = InitVirtualization();
+        status = virt::InitVirtualization(&g_Struct);
 
     } while (false);
 

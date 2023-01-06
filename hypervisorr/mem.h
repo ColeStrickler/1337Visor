@@ -8,3 +8,7 @@ namespace kernelmem
 	PVOID AllocContiguousPhysicalMem(_In_ size_t NumBytes);
 
 };
+
+
+
+

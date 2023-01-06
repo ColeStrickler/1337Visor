@@ -2,10 +2,10 @@
 
 
 
-bool exit_handler::exitcheck(PVirtual_Processor_Data VprocData, PRegister_Context RegCtx)
+extern "C" bool exitcheck(PVirtual_Processor_Data VprocData, PRegister_Context RegCtx)
 {
 
-	KIRQL currIRQL;
+	KIRQL currIRQL = KeGetCurrentIrql();
 	bool exit = FALSE;
 
 	__svm_vmload((uintptr_t)VprocData->ptr_host_VMCB);
@@ -24,16 +24,19 @@ bool exit_handler::exitcheck(PVirtual_Processor_Data VprocData, PRegister_Contex
 		case VMEXIT::_CPUID:
 		{
 			exit = exit_handler::cpuid_handler(VprocData, RegCtx);
+			break;
 		}
 
 		case VMEXIT::_MSR:
 		{
 			exit = exit_handler::msr_access_handler(VprocData, RegCtx);
+			break;
 		}
 
 		case VMEXIT::_VMRUN:
 		{
 			exit = exit_handler::vmrun_handler(VprocData, RegCtx);
+			break;
 		}
 
 		default:
@@ -85,8 +88,8 @@ bool exit_handler::cpuid_handler(PVirtual_Processor_Data VprocData, PRegister_Co
 	segment_long::_SEGMENT_ATTRIBUTE attrib;
 	memcpy(&attrib, &VprocData->guest_VMCB.StateSaveArea.ss.attribute, sizeof(attrib));
 
-	int function = RegCtx->rax;
-	int subleaf = RegCtx->rcx;
+	int function = RegCtx->rax & 0xffffffff;
+	int subleaf = RegCtx->rcx & 0xffffffff;
 
 	__cpuidex(cpuinfo, function, subleaf);		// actually execute the function
 

@@ -5,15 +5,28 @@
 #include "mem.h"
 #include <intrin.h>
 
-
-
 // ASM FUNCTIONS
+
 extern "C" void __enter_svm(_In_ PVOID InitStackPtr);
+
+namespace virt {
+
+}
+
+
+struct Globals {
+	PVOID						PowerStateCallback;
+	//virt::PagingModes			ActivePageMode;
+	PVOID						PageData;
+	PVirtual_Processor_Data		PtrVprocData;
+	short						NumProcessorsVirtualized;
+};
+
 
 
 namespace virt
 {
-	
+
 
 	enum PagingModes : short
 	{
@@ -35,9 +48,9 @@ namespace virt
 
 
 	// Exit
-	NTSTATUS ExitVirtualSession(Globals* g_GlobalSettings);
-	NTSTATUS DevirtualizeProcessors(Globals* g_GlobalSettings);
-	NTSTATUS DevirtualizeSingleProcessor(Globals* g_GlobalSettings);
+	NTSTATUS ExitVirtualSession();
+	NTSTATUS DevirtualizeProcessors();
+	NTSTATUS DevirtualizeSingleProcessor();
 
 
 	// Helpers
@@ -49,4 +62,3 @@ namespace virt
 	void Inject_GP_Exception(PVirtual_Processor_Data PtrVprocData);
 
 }
-

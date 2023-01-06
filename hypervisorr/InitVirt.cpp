@@ -5,33 +5,33 @@
 
 
 
-void virt::BuildPT4L_4kb(_Out_ PT_4L_long4kb::PPAGING_DATA PagingData)
-{
+//void virt::BuildPT4L_4kb(_Out_ PT_4L_long4kb::PPAGING_DATA PagingData)
+//{
+	//
+	//uintptr_t PdpBasePa, PdBasePa, PtBasePa, translationPa;
 
-	uintptr_t PdpBasePa, PdBasePa, PtBasePa, translationPa;
+	//PdpBasePa = MmGetPhysicalAddress(&PagingData->PdpEntries).QuadPart;
+//	PagingData->Pml4Entry[0].PdpBasePhysical = PdpBasePa >> PAGE_SHIFT;
 
-	PdpBasePa = MmGetPhysicalAddress(&PagingData->PdpEntries).QuadPart;
-	PagingData->Pml4Entry[0].PdpBasePhysical = PdpBasePa >> PAGE_SHIFT;
+	//PagingData->Pml4Entry[0].Present = 1;
+	//PagingData->Pml4Entry[0].ReadWrite = 1;	// allow r/w
+	//PagingData->Pml4Entry[0].User = 1;  // all guest accesses treated as user at the nested level
 
-	PagingData->Pml4Entry[0].Present = 1;
-	PagingData->Pml4Entry[0].ReadWrite = 1;	// allow r/w
-	PagingData->Pml4Entry[0].User = 1;  // all guest accesses treated as user at the nested level
+	//for (short int i = 0; i < 512; i++)
+//	{
+		//PdBasePa = MmGetPhysicalAddress(&PagingData->PdeEntries[i]).QuadPart;
+		//PagingData->PdpEntries[i].PdBasePhysical = PdBasePa >> PAGE_SHIFT;
 
-	for (short int i = 0; i < 512; i++)
-	{
-		PdBasePa = MmGetPhysicalAddress(&PagingData->PdeEntries[i]).QuadPart;
-		PagingData->PdpEntries[i].PdBasePhysical = PdBasePa >> PAGE_SHIFT;
-
-	}
+	//}
 
 
 
-};
+//};
 
 
 void virt::BuildPT4L_2MB(_Out_ PT_4L_long2mb::PPAGING_DATA PagingData)
 {
-	uintptr_t PdpPhysicalBase, PdePhysicalBase, TranslationPhysical;
+	uintptr_t PdpPhysicalBase, PdePhysicalBase;
 
 	// 1 PML4E controls up to 512Gb phyiscal memory
 	// Using larger page sizes decreases number of TLB misses and therefore results
@@ -129,14 +129,14 @@ void virt::SetMsrPermissionsMap(PVOID MsrPermissionsMapMemory)
 NTSTATUS virt::VirtualizeProcessors(Globals* g_GlobalSettings, _In_opt_ PVOID PagingData, _Out_ LPDWORD NumVirtualized, PagingModes ActivePagingMode)
 {
 	NTSTATUS ret = STATUS_SUCCESS;
-
+	UNREFERENCED_PARAMETER(ActivePagingMode);
 	ULONG NumberOfLogicalProcessors;
 	PROCESSOR_NUMBER ProcNum;
 	GROUP_AFFINITY NewAffinity, OldAffinity;
 
 	NumberOfLogicalProcessors = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
 
-	for (short int i = 0; i < NumberOfLogicalProcessors; i++)
+	for (unsigned short int i = 0; i < NumberOfLogicalProcessors; i++)
 	{
 		ret = KeGetProcessorNumberFromIndex((ULONG)i, &ProcNum);
 		if (!NT_SUCCESS(ret)) {
@@ -161,7 +161,7 @@ NTSTATUS virt::VirtualizeProcessors(Globals* g_GlobalSettings, _In_opt_ PVOID Pa
 		}
 
 	}
-
+	return ret;
 }
 
 
@@ -195,6 +195,7 @@ WORD virt::GetSegmentAttribute(WORD SegmentSelector, uintptr_t ptr_GDT)
 
 void virt::BuildVMCB(Globals* g_GlobalSettings, PVirtual_Processor_Data PtrVprocData, PVOID PagingData, PCONTEXT InitializationContext)
 {
+	UNREFERENCED_PARAMETER(g_GlobalSettings);
 	segment_long::SEGMENT_REGISTER IDTR, GDTR;
 	LARGE_INTEGER GuestVMCB, HostVMCB, HostStateArea, PML4, MSRPM;
 
@@ -435,16 +436,16 @@ bool virt::isInstalled()
 }
 
 
-NTSTATUS virt::ExitVirtualSession(Globals* g_GlobalSettings)
+NTSTATUS virt::ExitVirtualSession()
 {
 
-	NT_VERIFY(NT_SUCCESS(DevirtualizeProcessors(g_GlobalSettings)));
-	
+	NT_VERIFY(NT_SUCCESS(DevirtualizeProcessors()));
+	return STATUS_SUCCESS;
 }
 
 
 
-NTSTATUS virt::DevirtualizeProcessors(Globals* g_GlobalSettings)
+NTSTATUS virt::DevirtualizeProcessors()
 {
 	NTSTATUS ret = STATUS_SUCCESS;
 
@@ -454,7 +455,7 @@ NTSTATUS virt::DevirtualizeProcessors(Globals* g_GlobalSettings)
 
 	NumberOfLogicalProcessors = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
 
-	for (short int i = 0; i < NumberOfLogicalProcessors; i++)
+	for (unsigned short int i = 0; i < NumberOfLogicalProcessors; i++)
 	{
 		ret = KeGetProcessorNumberFromIndex((ULONG)i, &ProcNum);
 		if (!NT_SUCCESS(ret)) {
@@ -467,7 +468,7 @@ NTSTATUS virt::DevirtualizeProcessors(Globals* g_GlobalSettings)
 		NewAffinity.Reserved[0] = NewAffinity.Reserved[1] = NewAffinity.Reserved[2] = 0;
 		KeSetSystemGroupAffinityThread(&NewAffinity, &OldAffinity);
 
-		ret = DevirtualizeSingleProcessor(g_GlobalSettings);
+		ret = DevirtualizeSingleProcessor();
 
 
 		// Switch back to old processor affinity
@@ -481,7 +482,7 @@ NTSTATUS virt::DevirtualizeProcessors(Globals* g_GlobalSettings)
 }
 
 
-NTSTATUS virt::DevirtualizeSingleProcessor(Globals* g_GlobalSettings)
+NTSTATUS virt::DevirtualizeSingleProcessor()
 {
 
 	int cpuInfo[4];
@@ -493,11 +494,34 @@ NTSTATUS virt::DevirtualizeSingleProcessor(Globals* g_GlobalSettings)
 		}
 		KdPrint(("Processor Devirtualized.\n"));
 
+		PT_4L_long2mb::PPAGING_DATA* paging_Data = nullptr;
+
+		// We set these to be returned via 
+		uintptr_t low = cpuInfo[0] & 0xffffffff;
+		uintptr_t high = cpuInfo[3] & 0xffffffff;
+
+		void* ctx = nullptr;
+		PVirtual_Processor_Data PtrVprocData = (PVirtual_Processor_Data)( high << 32 | low );
+
+
+		// eax:edx contains per processor data to be freed
+		// we set this up in the exit_handler::cpuid_handler func
+		// The registers are set like so
+		//RegCtx->rax = reinterpret_cast<uintptr_t>(VprocData) & MAXUINT32;			
+		//RegCtx->rbx = VprocData->guest_VMCB.ControlArea.NRip;						
+		//RegCtx->rcx = VprocData->guest_VMCB.StateSaveArea.Rsp;					
+		//RegCtx->rdx = reinterpret_cast<uintptr_t>(VprocData) >> 32;
+
+		paging_Data = (PT_4L_long2mb::PPAGING_DATA*)(ctx);
+		*paging_Data = PtrVprocData->paging_Data;
+		MmFreeContiguousMemory(paging_Data);
+		
 
 		// CONTINUE HERE ==>
 
 	} while (false);
 	
+	return STATUS_SUCCESS;
 
 
 }
