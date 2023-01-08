@@ -61,6 +61,19 @@ bool CheckCompatible() {
     }
     memset(CpuInfo, 0, sizeof(CpuInfo));
 
+
+    __cpuid(CpuInfo, 0x8000000A);
+    if (!(CpuInfo[3] & (1 << 0)))
+    {
+        printf("Fuckled\n");
+        return FALSE;
+    }
+
+
+
+
+
+
     // Read VM_CR MSR and see if the SVMDIS bit is set
     ULONG64 vm_cr_msr = __readmsr(MSR_VM_CR);
     if (!(vm_cr_msr & MSR_VM_CR_SVMDIS)) {

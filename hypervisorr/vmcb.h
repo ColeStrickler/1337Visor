@@ -40,7 +40,7 @@ struct IntrCr
     WORD wIntrCR14 : 1;
     WORD wIntrCR15 : 1;
 };
-
+static_assert(sizeof(IntrCr) == 0x4, "IntrCr size mismatch.");
 
 struct IntrDr
 {
@@ -80,7 +80,7 @@ struct IntrDr
     WORD wIntrDR14 : 1;
     WORD wIntrDR15 : 1;
 };
-
+static_assert(sizeof(IntrDr) == 0x4, "IntrDr size mismatch.");
 
 
 struct IntrMisc1
@@ -118,7 +118,7 @@ struct IntrMisc1
     DWORD IntrFreeze : 1;                       // 30. Intercept FERR_FREEZE processor freezing during legacy FERR handling
     DWORD IntrShutDwn : 1;                      // 31. Intercept shutdown events
 };
-
+static_assert(sizeof(IntrMisc1) == 0x4, "IntrMisc1 size mismatch.");
 
 
 struct IntrMisc2
@@ -142,6 +142,7 @@ struct IntrMisc2
     DWORD IntrCRx : 16;
 };
 
+static_assert(sizeof(IntrMisc2) == 0x4, "IntrMisc2 size mismatch.");
 
 struct ExitIntInfo
 {
@@ -152,8 +153,7 @@ struct ExitIntInfo
     uintptr_t Valid :                   1;
     uintptr_t ErrorCode :               32;
 };
-
-
+static_assert(sizeof(ExitIntInfo) == 0x8, "ExitIntInfo size mismatch.");
 
 struct NestedPagingEnable
 {
@@ -167,6 +167,8 @@ struct NestedPagingEnable
     uintptr_t EnableInstr :                     1;
     uintptr_t Reserved :                        56;
 };
+static_assert(sizeof(NestedPagingEnable) == 0x8, "NpEnable size mismatch.");
+
 
 struct CleanField
 {
@@ -186,7 +188,7 @@ struct CleanField
     uintptr_t Reserved :    19;
     uintptr_t Reserved2 :   32;
 };
-
+static_assert(sizeof(CleanField) == 0x8, "CleanField size mismatch.");
 
 struct EventInj
 {
@@ -197,6 +199,8 @@ struct EventInj
     uintptr_t Valid : 1;
     uintptr_t ErrorCode : 32;
 };
+static_assert(sizeof(EventInj) == 0x8, "EventINj size mismatch.");
+
 
 
 

@@ -16,8 +16,6 @@ Globals g_Struct;
 
 
 
-
-
 static CALLBACK_FUNCTION PowerCallback;
 DRIVER_UNLOAD Unload;
 
@@ -221,8 +219,7 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING Reg
 
 
 
-    DbgPrint("DriverEntry Called.");
-
+   KdPrint(("DriverEntry Called."));
     RtlInitUnicodeString(&DriverName, L"\\Device\\hypervisor");
     RtlInitUnicodeString(&DosDeviceName, L"\\DosDevices\\hypervisor");
 
@@ -236,14 +233,17 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING Reg
             status = STATUS_NOT_SUPPORTED;
             break;
         }
+        KdPrint(("Found Compatible.\n"));
 
         status = ExCreateCallback(&PowerCallbackObject, &PowerCallbackObjAttr, FALSE, TRUE);
         if (!NT_SUCCESS(status)) {
+            KdPrint(("Could not create PowerState Callback0.\n"));
             status = STATUS_CANCELLED;
             break;
         }
         g_Struct.PowerStateCallback = ExRegisterCallback(PowerCallbackObject, PowerCallback, nullptr);
         if (g_Struct.PowerStateCallback == nullptr) {
+            KdPrint(("Could not register PowerState Callback1.\n"));
             status = STATUS_CANCELLED;
             break;
         }
@@ -255,12 +255,14 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING Reg
 
         status = IoCreateDevice(DriverObject, 0, &DriverName, FILE_DEVICE_UNKNOWN, FILE_DEVICE_SECURE_OPEN, FALSE, &DeviceObject);
         if (!NT_SUCCESS(status)) {
+            KdPrint(("Could not create Device object.\n"));
             break;
         }
         deviceCreated = true;
 
         status = status = IoCreateSymbolicLink(&DosDeviceName, &DriverName);
         if (!NT_SUCCESS(status)) {
+            KdPrint(("Could not create symbolic link.\n"));
             break;
         }
         symLinkCreated = true;

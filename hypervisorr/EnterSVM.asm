@@ -22,6 +22,10 @@ loop_start:
 
 
 	vmsave rax			; save some state into VMCB
+
+
+
+
 	
 	push  rax
     push  rbx
@@ -48,31 +52,31 @@ loop_start:
 
                             ; setup args for exitcheck(Virtual_Processor_Data, Register_Context)
     mov rdx, rsp            ; stack pointer is currently setup in format of Register_Context struct
-    mov rcx, [rsp + 88h]    ; 8*17 = 0x88, and since this is a ptr, we will dereference it 
+    mov rcx, [rsp + 88h]    ; 8*17 = 0x88, and since this is a stack ptr, we will dereference it to get the data there
 
     
-    sub rsp, 80h            ; allocate save space for volatile registers
+    sub rsp, 88h            ; allocate save space for volatile registers
 
-    movaps xmmword ptr [rsp + 20h], xmm0
-    movaps xmmword ptr [rsp + 30h], xmm1
-    movaps xmmword ptr [rsp + 40h], xmm2
-    movaps xmmword ptr [rsp + 50h], xmm3
-    movaps xmmword ptr [rsp + 60h], xmm4
-    movaps xmmword ptr [rsp + 70h], xmm5
+    movaps [rsp + 20h], xmm0
+    movaps [rsp + 30h], xmm1
+    movaps [rsp + 40h], xmm2
+    movaps [rsp + 50h], xmm3
+    movaps [rsp + 60h], xmm4
+    movaps [rsp + 70h], xmm5
 
 
     call exitcheck
 
 
-    movaps xmm5, xmmword ptr [rsp + 70h]
-    movaps xmm4, xmmword ptr [rsp + 60h]
-    movaps xmm3, xmmword ptr [rsp + 50h]
-    movaps xmm2, xmmword ptr [rsp + 40h]
-    movaps xmm1, xmmword ptr [rsp + 30h]
-    movaps xmm0, xmmword ptr [rsp + 20h]
+    movaps xmm5, [rsp + 70h]
+    movaps xmm4, [rsp + 60h]
+    movaps xmm3, [rsp + 50h]
+    movaps xmm2, [rsp + 40h]
+    movaps xmm1, [rsp + 30h]
+    movaps xmm0, [rsp + 20h]
 
 
-    add rsp, 80h
+    add rsp, 88h
 
 
     test al, al               ; set ZF to 1 if al == 0, al holds our returned boolean value from exitcheck()

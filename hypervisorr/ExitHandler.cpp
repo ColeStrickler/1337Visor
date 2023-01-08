@@ -85,7 +85,7 @@ bool exit_handler::cpuid_handler(PVirtual_Processor_Data VprocData, PRegister_Co
 	int cpuinfo[4] {0, 0, 0, 0};
 	bool exit = FALSE;
 
-	segment_long::_SEGMENT_ATTRIBUTE attrib;
+	_SEGMENT_ATTRIBUTE attrib;
 	memcpy(&attrib, &VprocData->guest_VMCB.StateSaveArea.ss.attribute, sizeof(attrib));
 
 	int function = RegCtx->rax & 0xffffffff;

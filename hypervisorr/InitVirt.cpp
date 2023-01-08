@@ -135,7 +135,7 @@ NTSTATUS virt::VirtualizeProcessors(Globals* g_GlobalSettings, _In_opt_ PVOID Pa
 	GROUP_AFFINITY NewAffinity, OldAffinity;
 
 	NumberOfLogicalProcessors = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
-
+	KdPrint(("Found %d processors.", NumberOfLogicalProcessors));
 	for (unsigned short int i = 0; i < NumberOfLogicalProcessors; i++)
 	{
 		ret = KeGetProcessorNumberFromIndex((ULONG)i, &ProcNum);
@@ -149,7 +149,7 @@ NTSTATUS virt::VirtualizeProcessors(Globals* g_GlobalSettings, _In_opt_ PVOID Pa
 		NewAffinity.Mask = 1ULL << ProcNum.Number;
 		NewAffinity.Reserved[0] = NewAffinity.Reserved[1] = NewAffinity.Reserved[2] = 0;
 		KeSetSystemGroupAffinityThread(&NewAffinity, &OldAffinity);
-		
+		KdPrint(("Set new system affinity group for processor {%d}.\n", i));;
 		ret = VirtualizeSingleProcessor(g_GlobalSettings, PagingData);
 
 
@@ -167,12 +167,12 @@ NTSTATUS virt::VirtualizeProcessors(Globals* g_GlobalSettings, _In_opt_ PVOID Pa
 
 WORD virt::GetSegmentAttribute(WORD SegmentSelector, uintptr_t ptr_GDT)
 {
-	segment_long::PSEGMENT_DESCRIPTOR Descriptor;
-	segment_long::SEGMENT_ATTRIBUTE Attribute16;			// sizeof(segment_long::SEGMENT_ATTRIBUTE) = 0x10
+	PSEGMENT_DESCRIPTOR Descriptor;
+	SEGMENT_ATTRIBUTE Attribute16;			// sizeof(segment_long::SEGMENT_ATTRIBUTE) = 0x10
 
 
 	// Index into the Global Descriptor table to select the corresponding segment descriptor
-	Descriptor = (segment_long::PSEGMENT_DESCRIPTOR)(ptr_GDT + (SegmentSelector & ~0x3)); // ignore requestor privilege level
+	Descriptor = (PSEGMENT_DESCRIPTOR)(ptr_GDT + (SegmentSelector & ~0x3)); // ignore requestor privilege level
 
 
 	Attribute16.Type = Descriptor->Type;
@@ -196,7 +196,7 @@ WORD virt::GetSegmentAttribute(WORD SegmentSelector, uintptr_t ptr_GDT)
 void virt::BuildVMCB(Globals* g_GlobalSettings, PVirtual_Processor_Data PtrVprocData, PVOID PagingData, PCONTEXT InitializationContext)
 {
 	UNREFERENCED_PARAMETER(g_GlobalSettings);
-	segment_long::SEGMENT_REGISTER IDTR, GDTR;
+	SEGMENT_REGISTER IDTR, GDTR;
 	LARGE_INTEGER GuestVMCB, HostVMCB, HostStateArea, PML4, MSRPM;
 
 	// For some reason _sgdt was not in the wdk header file so we manually put it back in
@@ -280,10 +280,11 @@ void virt::BuildVMCB(Globals* g_GlobalSettings, PVirtual_Processor_Data PtrVproc
 	// Save data to stack for use in assembly functions
 	PtrVprocData->ptr_Self = PtrVprocData;
 	PtrVprocData->paging_Data = page_data;
-	PtrVprocData->ptr_host_VMCB = (PVMCB)(HostVMCB.QuadPart);
-	PtrVprocData->ptr_guest_VMCB = (PVMCB)(GuestVMCB.QuadPart);
+	PtrVprocData->ptr_host_VMCB = (uintptr_t)(HostVMCB.QuadPart);
+	PtrVprocData->ptr_guest_VMCB = (uintptr_t)(GuestVMCB.QuadPart);
+	KdPrint(("Pa host vmcb: %llx\n", PtrVprocData->ptr_host_VMCB));
+	KdPrint(("Pa guest vmcb: %llx\n", PtrVprocData->ptr_guest_VMCB));
 	
-
 	// We set MSR_VM_HSAVE_PA to our PAGE_SIZE Byte array
 	// VMRUN and will save some processor state here, and #VMEXIT will load that state back
 	__writemsr(MSR_VM_HSAVE_PA, HostStateArea.QuadPart);
@@ -318,25 +319,32 @@ NTSTATUS virt::VirtualizeSingleProcessor(Globals* g_GlobalSettings, _In_ PVOID P
 
 
 	RtlCaptureContext(ContextInit);
-
+	KdPrint(("Captured Initialization context!\n"));
 	if (!isInstalled())
 	{
 
 
 		// enable SVM
 		__writemsr(IA32_EFER, __readmsr(IA32_EFER) | IA32_EFER_SVME);
-
+		KdPrint(("Wrote to IA32_EFER to enable SVMe!\n"));
 		BuildVMCB(g_GlobalSettings, PtrVprocData, PagingData, ContextInit);
+		KdPrint(("Built the VMCB and now attempting to enter SVM...\n"));
 
 
-		__enter_svm(&PtrVprocData->ptr_guest_VMCB);
+		KdPrint(("Pa host vmcb: %llx\n", PtrVprocData->ptr_host_VMCB));
+		KdPrint(("Pa guest vmcb: %llx\n", PtrVprocData->ptr_guest_VMCB));
+
+		__enter_svm(&PtrVprocData->ptr_guest_VMCB);		
+
+		
+
 		KeBugCheck(MANUALLY_INITIATED_CRASH);		// this should never be hit
 	}
 
 
 
-	short pNum = _InterlockedIncrement16(&g_GlobalSettings->NumProcessorsVirtualized);
-	KdPrint(("Processor #%d has been successfully virtualized!.", pNum));
+	g_GlobalSettings->NumProcessorsVirtualized++;
+	KdPrint(("Processor #%d has been successfully virtualized!.", g_GlobalSettings++));
 	ret = STATUS_SUCCESS;
 
 	if (ContextInit) {

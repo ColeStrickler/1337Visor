@@ -32,19 +32,22 @@ typedef struct Register_Context
 
 
 
-namespace segment_long {
+
+#include <pshpack1.h>
 	typedef struct _SEGMENT_REGISTER
 	{
-		WORD Limit;
-		uintptr_t Base;
+		UINT16 Limit;
+		ULONG_PTR Base;
 	}SEGMENT_REGISTER, PSEGMENT_REGISTER;
+	static_assert(sizeof(SEGMENT_REGISTER) == 10, "Segment Register size mismatch");
+#include <poppack.h>
 
 
 	typedef struct _SEGMENT_DESCRIPTOR
 	{
-		WORD SegLimitLow;
-		WORD BaseAddress;
-		BYTE BaseLow;
+		uintptr_t SegLimitLow : 16;
+		uintptr_t BaseAddress :		16;
+		uintptr_t BaseLow : 8;	//39
 		uintptr_t Type :			4;
 		uintptr_t System :			1;
 		uintptr_t Dpl :				2;
@@ -56,6 +59,9 @@ namespace segment_long {
 		uintptr_t Granularity :		1;
 		uintptr_t BaseHigh :		8;
 	}SEGMENT_DESCRIPTOR, *PSEGMENT_DESCRIPTOR;
+	static_assert(sizeof(SEGMENT_DESCRIPTOR) == 8, "Segment Size mismatch.");
+
+
 
 	typedef struct _SEGMENT_ATTRIBUTE
 	{
@@ -69,8 +75,9 @@ namespace segment_long {
 		UINT16 Granularity :		1;
 		UINT16 Reserved1 :			4;
 	}SEGMENT_ATTRIBUTE, * PSEGMENT_ATTRIBUTE;
+	static_assert(sizeof(SEGMENT_ATTRIBUTE) == 2, "Segment Size mismatch.");
 
-}
+
 
 namespace PT_4L_long4kb
 {
@@ -211,14 +218,14 @@ namespace PT_4L_long2mb
 
 typedef struct Virtual_Processor_Data
 {
-	VMCB host_VMCB;
-	VMCB guest_VMCB;
+	DECLSPEC_ALIGN(PAGE_SIZE) VMCB host_VMCB;
+	DECLSPEC_ALIGN(PAGE_SIZE) VMCB guest_VMCB;
 
 	DECLSPEC_ALIGN(PAGE_SIZE) BYTE host_StateArea[PAGE_SIZE];
 
-	PVMCB ptr_guest_VMCB;				// PHYSICAL ADDRESS
-	PVMCB ptr_host_VMCB;				// PHYSICAL ADDRESS
-	void* ptr_Self;
+	UINT64 ptr_guest_VMCB;				// PHYSICAL ADDRESS
+	UINT64 ptr_host_VMCB;				// PHYSICAL ADDRESS
+	Virtual_Processor_Data* ptr_Self;
 	PT_4L_long2mb::PPAGING_DATA paging_Data;
 
 }Virtual_Processor_Data, * PVirtual_Processor_Data;
