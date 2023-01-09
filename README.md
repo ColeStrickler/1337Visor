@@ -2,6 +2,8 @@
 Type 2 Hypervisor for security research supported by AMD-V hardware assisted virtualization
 
 
+I hope to add page level monitoring, hypercalls, and kernel API hooks, to this project in the near future
+
 
 # Running List of References
 <a href="https://www.amd.com/system/files/TechDocs/24593.pdf">AMD Manual Chapter 1</a>
